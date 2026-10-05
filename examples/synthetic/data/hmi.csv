@@ -1,0 +1,54 @@
+Layer,Function,Sub-Function,Technology,Specification,Material,MI,unit,<1920,1960-1980,2002-2006
+Structure,Wall,Load bearing,Brick masonry,Illustrative solid wall,Brick,260,kg/m2,YES,YES,YES
+Structure,Wall,Load bearing,Brick masonry,Illustrative solid wall,Mortar,30,kg/m2,YES,YES,YES
+Structure,Wall,Load bearing,Brick masonry,Illustrative later wall,Brick,190,kg/m2,NO,YES,YES
+Structure,Wall,Load bearing,Brick masonry,Illustrative later wall,Mortar,24,kg/m2,NO,YES,YES
+Structure,Wall,Load bearing,Stone masonry,Illustrative rubble wall,Sandstone,390,kg/m2,YES,YES,NO
+Structure,Wall,Load bearing,Stone masonry,Illustrative rubble wall,Mortar,40,kg/m2,YES,YES,NO
+Structure,Wall,Load bearing,Concrete,Illustrative cast wall,Concrete,300,kg/m2,YES,YES,YES
+Structure,Wall,Load bearing,Concrete,Illustrative cast wall,Steel,4,kg/m2,YES,YES,YES
+Structure,Wall,Load bearing,Timber framing,Illustrative frame,Timber studding,24,kg/m2,YES,YES,YES
+Structure,Wall,Load bearing,Timber framing,Illustrative frame,Plywood,7,kg/m2,YES,YES,YES
+Structure,Floor,Load bearing,Concrete slab,Illustrative slab,Concrete,220,kg/m2,YES,YES,YES
+Structure,Floor,Load bearing,Concrete slab,Illustrative slab,Steel,5,kg/m2,YES,YES,YES
+Structure,Floor,Load bearing,Timber joists,Illustrative joists,Timber structure,26,kg/m2,YES,YES,YES
+Structure,Floor,Load bearing,Timber joists,Illustrative joists,Chipboard,10,kg/m2,YES,YES,YES
+Structure,Roof,Load bearing,Timber rafters,Illustrative rafters,Timber structure,22,kg/m2,YES,YES,YES
+Structure,Roof,Load bearing,Timber rafters,Illustrative rafters,Steel,1,kg/m2,YES,YES,YES
+Structure,Roof,Load bearing,Concrete deck,Illustrative deck,Concrete,150,kg/m2,NO,YES,YES
+Structure,Roof,Load bearing,Concrete deck,Illustrative deck,Steel,4,kg/m2,NO,YES,YES
+Skin,Wall,Non-load bearing structure,Brick cladding,Illustrative facing,Brick,90,kg/m2,YES,YES,YES
+Skin,Wall,Non-load bearing structure,Brick cladding,Illustrative facing,Mortar,12,kg/m2,YES,YES,YES
+Skin,Wall,Non-load bearing structure,Concrete panel,Illustrative panel,Concrete,110,kg/m2,YES,YES,YES
+Skin,Wall,Non-load bearing structure,Timber cladding,Illustrative boards,Timber decking,13,kg/m2,YES,YES,YES
+Skin,Wall,Non-load bearing structure,Timber cladding,Illustrative boards,Steel,0.5,kg/m2,YES,YES,YES
+Skin,Wall,Insulation,Mineral insulation,Illustrative insulation,Mineral wool,5,kg/m2,YES,YES,YES
+Skin,Wall,Insulation,Foam insulation,Illustrative insulation,Polymer foam,2,kg/m2,NO,YES,YES
+Skin,Roof,Finish 2,Tiles,Illustrative clay tiles,Clay tile,40,kg/m2,YES,YES,YES
+Skin,Roof,Finish 2,Tiles,Illustrative clay tiles,Timber battens,4,kg/m2,YES,YES,YES
+Skin,Roof,Finish 2,Tiles,Illustrative slate tiles,Slate,32,kg/m2,YES,YES,NO
+Skin,Roof,Finish 2,Tiles,Illustrative slate tiles,Timber battens,4,kg/m2,YES,YES,NO
+Skin,Roof,Finish 2,Covering,Illustrative membrane,Bitumen membrane,5,kg/m2,YES,YES,YES
+Skin,Roof,Finish 1,Ballast,Illustrative ballast,Ballast (gravel),25,kg/m2,YES,YES,YES
+Skin,Roof,Finish 1,Timber support,Illustrative support,Timber decking,8,kg/m2,YES,YES,YES
+Skin,Opening,Window,Metal frame,Illustrative window,Aluminium,8,kg/item,YES,YES,YES
+Skin,Opening,Window,Metal frame,Illustrative window,Glass,18,kg/item,YES,YES,YES
+Skin,Opening,Window,Polymer frame,Illustrative window,PVC,7,kg/item,YES,YES,YES
+Skin,Opening,Window,Polymer frame,Illustrative window,Glass,15,kg/item,YES,YES,YES
+Skin,Opening,Door,Timber door,Illustrative door,Timber,25,kg/item,YES,YES,YES
+Skin,Opening,Door,Timber door,Illustrative door,Brass,0.6,kg/item,YES,YES,YES
+Space,Wall,Partition,Brick partition,Illustrative partition,Brick,80,kg/m2,YES,YES,YES
+Space,Wall,Partition,Brick partition,Illustrative partition,Plaster,10,kg/m2,YES,YES,YES
+Space,Wall,Partition,Timber partition,Illustrative partition,Timber studding,8,kg/m2,YES,YES,YES
+Space,Wall,Partition,Timber partition,Illustrative partition,Plasterboard,12,kg/m2,YES,YES,YES
+Space,Floor,Finish,Timber flooring,Illustrative floor,Timber hardwood flooring,12,kg/m2,YES,YES,YES
+Space,Floor,Finish,Sheet flooring,Illustrative floor,Chipboard,10,kg/m2,YES,YES,YES
+Space,Floor,Finish,Sheet flooring,Illustrative floor,PVC,2,kg/m2,YES,YES,YES
+Space,Opening,Door,Timber door,Illustrative internal door,Timber,15,kg/item,YES,YES,YES
+Space,Opening,Door,Timber door,Illustrative internal door,Steel,0.4,kg/item,YES,YES,YES
+Services,Electrical,Wiring,Copper cable,Illustrative cable A,Copper,0.1,kg/m,YES,YES,YES
+Services,Electrical,Wiring,Copper cable,Illustrative cable A,Plastic,0.04,kg/m,YES,YES,YES
+Services,Electrical,Wiring,Copper cable,Illustrative cable B,Copper,0.14,kg/m,NO,YES,YES
+Services,Electrical,Wiring,Copper cable,Illustrative cable B,Plastic,0.06,kg/m,NO,YES,YES
+Services,Ventilation,Extraction,Extract fan,Illustrative fan,Steel,1.5,kg/item,YES,YES,YES
+Services,Ventilation,Extraction,Extract fan,Illustrative fan,Plastic,0.8,kg/item,YES,YES,YES

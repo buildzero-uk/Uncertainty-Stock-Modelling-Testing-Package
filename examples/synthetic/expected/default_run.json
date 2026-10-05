@@ -1,0 +1,23 @@
+{
+  "synthetic": true,
+  "parameters": {
+    "draws": 200,
+    "pool_size": 5,
+    "refreshes": 10,
+    "seed": 42
+  },
+  "input_sha256": {
+    "buildings.csv": "c11f99b11739d8686d740fdd3ac3e4025ff0f7beb3700b1fe77f8a312c676cd1",
+    "training.csv": "5221c1df7be1f79e05be4d7f9500b9fee1e2cbe5bb1ba22c2083a004d041144f",
+    "hmi.csv": "01b212035c46b26f0387566d9d8c91add7f34529a0dbea52b89f1fa5aff54f55",
+    "age_probabilities.csv": "7b79b1ed5ea5084589cf4ce973a7d9efbb23acc70c1c181557cc2c41375c796c"
+  },
+  "python": "3.11.5",
+  "dependencies": {
+    "numpy": "1.23.5",
+    "pandas": "2.1.4",
+    "scipy": "1.11.4",
+    "statsmodels": "0.14.0",
+    "matplotlib": "3.8.0"
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "prepared_on": "2026-10-05",
+  "synthetic_inputs": true,
+  "original_sources": [
+    {
+      "source": "stock_modelling/proof_of_concept_uncertainty/material_sampling/material_sampling_v2.py",
+      "source_sha256": "1c9e6c232f464687828ea6d1183bda488af60b6cde2340a6f61d8292e83c780c",
+      "definitions": {
+        "TreeNode": {
+          "first_line": 10,
+          "last_line": 42
+        },
+        "MaterialTreeBuilder": {
+          "first_line": 45,
+          "last_line": 67
+        },
+        "TreeTrimmer": {
+          "first_line": 71,
+          "last_line": 248
+        },
+        "UncertaintyForestBuilder": {
+          "first_line": 265,
+          "last_line": 630
+        }
+      }
+    },
+    {
+      "source": "stock_modelling/proof_of_concept_uncertainty/stock_calculation/uncertainty_stock_calculation_v2.py",
+      "source_sha256": "af48a9d49e2be0ff9c17d81bfe2a1e6c2c7d81dc7b0ee43e038f984356526ca1",
+      "definitions": {
+        "apply_dimensions": {
+          "first_line": 177,
+          "last_line": 288
+        }
+      }
+    },
+    {
+      "source": "stock_modelling/proof_of_concept_uncertainty/material_sampling/pre_sampler.py",
+      "source_sha256": "9a96b6b283505b89b74173928557fb673f5ba6424c03132033f9f36462a9979c",
+      "definitions": {
+        "generate_slots_for_age_material": {
+          "first_line": 79,
+          "last_line": 143
+        }
+      }
+    },
+    {
+      "source": "stock_modelling/proof_of_concept_uncertainty/building_sampling/house_mc_sampling.py",
+      "source_sha256": "a1eb8d1b2611a4f9f6348c812fadb23b39a33a8c29ba0cc012aefce8275ebf44",
+      "note": "DSDS model with explicitly controlled count/wall RNGs"
+    },
+    {
+      "source": "stock_modelling/proof_of_concept_uncertainty/stock_calculation/uncertainty_stock_calculation_v4.py",
+      "source_sha256": "0dfcdfa2fd6ef6b8d66aabd264a89daef88a8e28a4540f42b73a8601c12e6b89",
+      "note": "Reference for post-sampling hard bounds and dimensional inputs"
+    },
+    {
+      "source": "stock_modelling/proof_of_concept_uncertainty/variance_decomposition/processing_files.py",
+      "source_sha256": "e6de41ff5933291e221cbecd01685a5d3c6882912365e738e5d2811c396fb165",
+      "note": "Terminal material screening rules"
+    }
+  ],
+  "adaptation_notes": "CODE_ORIGIN.md",
+  "core_files_sha256": {
+    "mwe_core/__init__.py": "0df9040697d56a7d86aa50f4250afc6138f564a5f4dff565fb52fa4ce527ae25",
+    "mwe_core/age.py": "b8d374df42b95dababf04a71ffa70f186d0edefccd2693d3f6760f1e35945e66",
+    "mwe_core/aggregation.py": "b51871ad9bbf32d6e5b2cf45e50a92f37cbb0c528c1ffcb58d0bb4f1941c3c38",
+    "mwe_core/dimensions.py": "1352d20c83bcce12e4fc91ae2d60d7a2e0f94d69d3cc8c09d492690f2edc53f3",
+    "mwe_core/dsds.py": "00f94a71717fcd92c48966117cfa7f25dc88ee86a78466fa3a7e8c9ea9e27c99",
+    "mwe_core/materials.py": "b18fb6a8cb59dd463791db5b9fc06ee94e47d325483b0437713647cabdf1465a",
+    "mwe_core/pipeline.py": "be82c9d3a37722f0803540594e7355d0606c846de2010e55d344f81228af4fe2"
+  }
+}

@@ -1,0 +1,6 @@
+# Tested direct dependencies with CPython 3.11. See TESTED_ENVIRONMENT.md.
+numpy==1.23.5
+pandas==2.1.4
+scipy==1.11.4
+statsmodels==0.14.0
+matplotlib==3.8.0
