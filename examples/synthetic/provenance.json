@@ -47,12 +47,12 @@
     {
       "source": "stock_modelling/proof_of_concept_uncertainty/building_sampling/house_mc_sampling.py",
       "source_sha256": "a1eb8d1b2611a4f9f6348c812fadb23b39a33a8c29ba0cc012aefce8275ebf44",
-      "note": "DSDS model with explicitly controlled count/wall RNGs"
+      "note": "Original DSDS model; the example adaptation adds explicitly controlled independent count RNGs and a separate shared wall RNG"
     },
     {
       "source": "stock_modelling/proof_of_concept_uncertainty/stock_calculation/uncertainty_stock_calculation_v4.py",
       "source_sha256": "0dfcdfa2fd6ef6b8d66aabd264a89daef88a8e28a4540f42b73a8601c12e6b89",
-      "note": "Reference for post-sampling hard bounds and dimensional inputs"
+      "note": "Reference for area-seed assignment, per-block pool/slot schedule, post-sampling hard bounds and dimensional inputs"
     },
     {
       "source": "stock_modelling/proof_of_concept_uncertainty/variance_decomposition/processing_files.py",
@@ -68,6 +68,18 @@
     "mwe_core/dimensions.py": "1352d20c83bcce12e4fc91ae2d60d7a2e0f94d69d3cc8c09d492690f2edc53f3",
     "mwe_core/dsds.py": "00f94a71717fcd92c48966117cfa7f25dc88ee86a78466fa3a7e8c9ea9e27c99",
     "mwe_core/materials.py": "b18fb6a8cb59dd463791db5b9fc06ee94e47d325483b0437713647cabdf1465a",
-    "mwe_core/pipeline.py": "be82c9d3a37722f0803540594e7355d0606c846de2010e55d344f81228af4fe2"
+    "mwe_core/pipeline.py": "d4f169573a105ba4ff1159d8428c0c2d4508488a63217c66b37832e4923b7439"
+  },
+  "revision": "original-v4-material-schedule",
+  "sampling_schedule": {
+    "version": "original-v4",
+    "area_seeds": {
+      "synthetic_area_A": 42,
+      "synthetic_area_B": 43
+    },
+    "wall_seed": 43,
+    "pool_seed_rule": "area_seed + refresh_block; shared across ages and exterior prototypes",
+    "slot_seed_rule": "area_seed; reset for every building and refresh block",
+    "count_stream": "SHA256(base_seed, counts, building_id); independent reproducible count draws"
   }
 }

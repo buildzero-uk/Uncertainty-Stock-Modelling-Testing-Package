@@ -37,12 +37,27 @@ methods used by the example; the full class is retained in its original file.
   scaling function itself is unchanged.
 - **Small shared pools.** `pipeline.py` replaces the production file-backed,
   multiprocessing orchestration with an explicit in-memory pool cache.
-  Stable seeds are derived from the simulation seed and pool/building labels.
-  Pool candidates are copied before scaling, and draw indices remain paired.
+  Candidate generation uses `area_seed + block` for every age and exterior
+  prototype. Slot generation restarts with constant `area_seed` for each
+  building and block, sharing age/candidate-index sequences among buildings
+  with the same recorded age in an area. Pools remain distinct by area,
+  sampled age, exterior prototype and block. Candidates are copied before
+  scaling, and draw indices remain paired.
+- **Explicit area ordering.** Historical area seeds depended on unsorted
+  directory enumeration. The example uses `base_seed + ordinal` with areas
+  ordered by first appearance in the input, or a complete `--area-seeds`
+  JSON mapping. It records the effective mapping.
+- **Original wall seed.** The default shared wall seed is 43, matching the
+  original model seed 42 plus one. `--wall-seed` exposes a sensitivity option;
+  changing it changes that original default. Count seeds are stable hashes of
+  the base seed, `counts` and building ID. They make new draws reproducible
+  but cannot recover the research helper's historical unseeded counts.
 - **Complete aggregation.** The aggregation fix developed during revision
   uses a complete material schema. This example builds that schema from the
   union of all building paths, including columns absent from the first
-  building. Missing columns mean zero; missing numeric cells are rejected.
+  building. Missing columns mean zero; non-finite or negative masses are
+  rejected. Raw research-data exceptions require an explicit external
+  adapter; public input validation is not relaxed.
   It does not reuse the earlier first-building-column accumulation behaviour.
 - **Standalone fixtures and reporting.** The data generator, command-line
   runner, output verifier, reference summaries and tests were added for this
@@ -55,3 +70,18 @@ example establishes that this supplied workflow can run and that the tested
 software invariants hold. It does not assert that every historical research
 entrypoint has been converted into a portable package, or that synthetic
 results validate empirical stock estimates.
+
+## Revision boundary
+
+This revision supersedes the earlier example's hash-per-building material
+slot seeds and hash-per-key pool seeds. Those streams demonstrated the same
+primitives but did not preserve the original shared sampling schedule.
+Expected summaries and the figure must use this revision's regenerated
+reference files.
+
+Code agreement checks tested calculations and scheduling, not predictive
+accuracy against measured building inventories. A paired local replay can
+hold recovered historical dimensions fixed. A fresh run with newly seeded
+count draws answers a different reproducibility question and need not be
+bitwise identical. Private replay data and legacy adapters are not included
+in this synthetic example.

@@ -6,6 +6,17 @@
     "refreshes": 10,
     "seed": 42
   },
+  "sampling_schedule": {
+    "version": "original-v4",
+    "area_seeds": {
+      "synthetic_area_A": 42,
+      "synthetic_area_B": 43
+    },
+    "wall_seed": 43,
+    "pool_seed_rule": "area_seed + refresh_block; shared across ages and exterior prototypes",
+    "slot_seed_rule": "area_seed; reset for every building and refresh block",
+    "count_stream": "SHA256(base_seed, counts, building_id); independent reproducible count draws"
+  },
   "input_sha256": {
     "buildings.csv": "c11f99b11739d8686d740fdd3ac3e4025ff0f7beb3700b1fe77f8a312c676cd1",
     "training.csv": "5221c1df7be1f79e05be4d7f9500b9fee1e2cbe5bb1ba22c2083a004d041144f",

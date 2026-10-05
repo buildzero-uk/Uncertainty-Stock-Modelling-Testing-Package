@@ -12,6 +12,55 @@ from mwe_core.aggregation import LAYERS, MATERIALS, summarise_targets
 
 HERE=Path(__file__).resolve().parent
 TARGET_COLUMNS=['total',*[f'layer__{x}' for x in LAYERS],*[f'material__{x}' for x in MATERIALS]]
+DEFAULT_PARAMETERS={'draws':200,'pool_size':5,'refreshes':10,'seed':42}
+
+
+def reference_skip_reason(meta,expected_meta):
+    """Require identical parameters, input hashes AND full random schedule.
+
+    Older output metadata without a schedule can still pass saved-file integrity
+    checks, but cannot establish compatibility with a numerical reference.
+    """
+    if meta.get('parameters')!=DEFAULT_PARAMETERS or expected_meta.get('parameters')!=DEFAULT_PARAMETERS:
+        return 'configuration differs from the default reference'
+    if not meta.get('input_sha256') or meta.get('input_sha256')!=expected_meta.get('input_sha256'):
+        return 'input hashes differ or are missing'
+    schedule=meta.get('sampling_schedule')
+    expected_schedule=expected_meta.get('sampling_schedule')
+    if not isinstance(schedule,dict) or not isinstance(expected_schedule,dict):
+        return 'sampling_schedule is missing from run or reference metadata; older references are not comparable'
+    if schedule.get('version')!='original-v4' or expected_schedule.get('version')!='original-v4':
+        return 'sampling schedule version is not original-v4'
+    required={'version','area_seeds','wall_seed','pool_seed_rule','slot_seed_rule','count_stream'}
+    if not required.issubset(schedule) or not required.issubset(expected_schedule):
+        return 'sampling_schedule metadata is incomplete'
+    if schedule!=expected_schedule:
+        return 'sampling_schedule differs (including area seeds, wall seed or random-stream policy)'
+    return None
+
+
+def compare_default_reference(meta,summary,reference_directory=HERE/'expected'):
+    """Compare numbers only after all reference provenance fields match."""
+    reference_directory=Path(reference_directory)
+    reference=reference_directory/'default_city_summary.csv'
+    reference_meta=reference_directory/'default_run.json'
+    if not reference.is_file() or not reference_meta.is_file():
+        print('Reference comparison skipped: reference files are not installed.')
+        return False
+    expected_meta=json.loads(reference_meta.read_text())
+    reason=reference_skip_reason(meta,expected_meta)
+    if reason is not None:
+        print(f'Reference comparison skipped: {reason}.')
+        return False
+    expected=read_saved_csv(reference).set_index('target').sort_index()
+    observed=summary[summary.scope.eq('city')].set_index('target').sort_index()
+    if not expected.index.is_unique or not observed.index.is_unique or not expected.index.equals(observed.index):
+        raise AssertionError('Default reference and observed city targets do not match')
+    cols=['mean_kg','p05_kg','median_kg','p95_kg']
+    np.testing.assert_allclose(observed[cols],expected[cols],rtol=1e-7,atol=.01)
+    print('Default synthetic reference results match (parameters, input hashes and full sampling schedule agree; '
+          'floating-point tolerance applied).')
+    return True
 
 
 def read_saved_csv(path, **kwargs):
@@ -137,21 +186,7 @@ def main():
     args=parser.parse_args()
     out=args.output
     meta,summary=verify_saved_outputs(out)
-    reference=HERE/'expected/default_city_summary.csv'
-    reference_meta=HERE/'expected/default_run.json'
-    default={'draws':200,'pool_size':5,'refreshes':10,'seed':42}
-    if reference.exists() and reference_meta.exists() and meta['parameters']==default:
-        expected_meta=json.loads(reference_meta.read_text())
-        if meta['input_sha256']==expected_meta['input_sha256']:
-            expected=pd.read_csv(reference).set_index('target').sort_index()
-            observed=summary[summary.scope.eq('city')].set_index('target').sort_index()
-            cols=['mean_kg','p05_kg','median_kg','p95_kg']
-            np.testing.assert_allclose(observed[cols],expected[cols],rtol=1e-7,atol=.01)
-            print('Default synthetic reference results match (floating-point tolerance applied).')
-        else:
-            print('Reference comparison skipped: input files differ from the supplied fixture.')
-    else:
-        print('Reference comparison skipped: configuration differs or reference is not installed.')
+    compare_default_reference(meta,summary)
     print('Saved-output checks passed: exact raw file inventory, raw paths -> targets, '
           'building -> assigned area -> city, complete paired draws, material/layer conservation and quantiles.')
 

@@ -65,16 +65,20 @@ def main():
     parser.add_argument('--pool-size',type=int,default=5)
     parser.add_argument('--refreshes',type=int,default=10)
     parser.add_argument('--seed',type=int,default=42)
+    parser.add_argument('--area-seeds',type=Path,help='JSON mapping from every area_id to its original area seed')
+    parser.add_argument('--wall-seed',type=int,default=43,help='Shared wall stream; 43 reproduces the original setting')
     parser.add_argument('--no-plot',action='store_true')
     args=parser.parse_args()
     if args.output.exists() and (not args.output.is_dir() or any(args.output.iterdir())):
         parser.error('Output must be a new or empty directory. Choose a new --output path for each run.')
     started=time.perf_counter()
     buildings,training,hmi,matrix=read_inputs(args.input_dir)
+    area_seeds=json.loads(args.area_seeds.read_text()) if args.area_seeds else None
     print(f'Synthetic example: {len(buildings)} buildings, {buildings.area_id.nunique()} areas, '
           f'{args.draws} draws, P={args.pool_size}, C={args.refreshes}',flush=True)
     result=simulate(buildings,training,hmi,matrix,draws=args.draws,pool_size=args.pool_size,
-                    refreshes=args.refreshes,seed=args.seed,progress=True)
+                    refreshes=args.refreshes,seed=args.seed,area_seeds=area_seeds,
+                    wall_seed=args.wall_seed,progress=True)
     out=args.output
     out.mkdir(parents=True,exist_ok=True)
     collected=[]
@@ -102,7 +106,8 @@ def main():
     if not args.no_plot:
         plot_results(targets,out)
     parameters={k:getattr(args,k) for k in ['draws','pool_size','refreshes','seed']}
-    metadata=dict(synthetic=True,parameters=parameters,buildings=len(buildings),areas=buildings.area_id.nunique(),
+    metadata=dict(synthetic=True,parameters=parameters,sampling_schedule=result.sampling_schedule,
+        buildings=len(buildings),areas=buildings.area_id.nunique(),
         dsds_training_records=len(training),hmi_rows=len(hmi),age_labels=list(matrix.index),
         units='kg in CSV; tonnes in the figure',python=platform.python_version(),
         dependencies={name:importlib.metadata.version(name) for name in ['numpy','pandas','scipy','statsmodels','matplotlib']},

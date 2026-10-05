@@ -1,46 +1,58 @@
 # Tested environment and verification
 
-Verified on 5 October 2026 using CPython 3.11.5 on macOS / Apple Silicon.
+This record applies to the **original-schedule revision**, dated 5 October
+2026. Earlier timings, test counts and baselines do not certify this revision.
 
-## Execution checks
+## Environment and execution record
 
-- Created a new virtual environment without system-site packages.
-- Installed the five direct dependencies from public PyPI; the complete resolved
-  dependency set is recorded in `requirements-lock.txt`. `pip check` passed.
-- Copied the example directory outside the research repository, excluding
-  generated outputs and Python caches.
-- Invoked the relocated runner from a different working directory, using the
-  new virtual environment and only the included synthetic inputs.
-- Completed the default run: 24 buildings, two areas, 200 draws, `P=5`, `C=10`,
-  seed 42. Simulation and reporting took approximately 32 seconds in that run;
-  dependency installation and initial library imports are additional.
-- Passed **31 automated tests**, including the sparse-column aggregation
-  regression and independent checks against hand-calculated component masses.
-- Verified raw-output inventory, paired draws, building-to-assigned-area-to-city
-  sums, layer/material conservation and default numerical reference summaries.
-- Compared all saved target sequences, summaries, sampled-attribute records and
-  pool fingerprints with the development-environment run; they matched within
-  floating-point tolerance.
-- Confirmed the runner rejects a nonempty output directory, preventing stale
-  files from a previous configuration from being mixed with new results.
-- Rendered the example PDF and inspected both the PDF rendering and PNG output.
+| Item | Verified result |
+| --- | --- |
+| Python version and platform | Python 3.11.5; macOS 26.6.2; ARM64 |
+| Isolated environment and dependency check | Existing isolated venv with the supplied dependency pins; `pip check` passed |
+| Default synthetic run | Completed: 24 buildings, two areas, 200 draws, `P=5`, `C=10`; original material schedule; wall seed 43 |
+| Automated tests | All 43 tests passed in 2.62 seconds |
+| Relocated standalone run | Completed from a separate temporary directory, invoked from outside the example directory; no production modules or data needed |
+| Saved-output and new default-reference verification | Passed for both runs, including parameters, input hashes and complete sampling schedule |
+| Figure render inspection | PNG inspected; PDF rendered and inspected; labels, units and intervals legible |
+| Runtime, excluding installation/setup where applicable | Default run 26.8 seconds; relocated run 33.3 seconds, with other local work running concurrently |
 
-The copied material-tree primitives, age-slot sampler and component-dimension
-conversion were checked against their original Python syntax trees. The DSDS
-random-stream adaptations are documented in `CODE_ORIGIN.md`.
+The supplied pins target Python 3.11. `requirements.txt` lists the five direct
+dependencies; `requirements-lock.txt` records the complete pinned set. Other
+operating systems and Python versions are not implied to be tested.
 
-These checks concern the supplied synthetic example. Other operating systems
-and Python versions have not been independently tested. The pinned packages
-target Python 3.11; do not assume compatibility with every newer Python release.
+## Checks for this revision
 
-## Interpreting the checks
+The default configuration uses 24 buildings, two areas, 200 draws, `P=5`,
+`C=10`, base seed 42 and shared wall seed 43. Verification covers:
 
-Mass conservation is checked within floating-point tolerance rather than exact
-decimal equality. The default-reference comparison uses relative tolerance
-`1e-7` and absolute tolerance `0.01 kg`; it permits minor numerical differences
-between numerical-library builds.
+- Hand-calculated component masses and retention of all materials in a
+  selected specification.
+- Age-matrix orientation, deterministic area seeds, shared age/candidate slots,
+  pool refreshes and the explicit wall RNG convention.
+- Separate reproducible count streams and repeatability for fixed inputs,
+  seeds and software versions.
+- Paired building-to-area-to-city sums and complete-column aggregation when
+  later buildings introduce new materials.
+- Separate conservation of layer and material partitions.
+- Saved-output integrity and the newly generated original-schedule reference.
+  The previous schedule's expected values are superseded.
+- Rejection of unsupported inputs and nonempty output directories.
 
-Synthetic results are a repeatable software baseline. Their magnitude,
-uncertainty ranges and correlations do not constitute independent evidence
-about real buildings. A different input inventory or a different simulation
-seed can legitimately produce different results.
+## Interpretation
+
+The reference comparison permits numerical-library differences: relative
+tolerance `1e-7` and absolute tolerance `0.01 kg`. Conservation is also checked
+within floating-point tolerance.
+
+Synthetic reference values are software regression baselines. Code agreement
+or replay of saved model quantities does not establish predictive accuracy
+against measured buildings. A historical material seed cannot recover the
+original unseeded count draws. Fresh explicit count seeds can preserve the
+implemented model and material schedule while producing different sampled
+outputs.
+
+Real-data replay and any required legacy adapters are maintained outside this
+public example. No real input data or recovered model outputs are included.
+
+A separate local check of the revised sampling helpers on retained real
+inputs is summarised in [REAL_DATA_CHECK.md](REAL_DATA_CHECK.md).

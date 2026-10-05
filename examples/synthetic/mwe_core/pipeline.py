@@ -8,6 +8,8 @@ from hashlib import sha256
 from io import StringIO
 from pathlib import Path
 import json
+from collections.abc import Mapping
+from numbers import Integral
 
 import numpy as np
 import pandas as pd
@@ -20,12 +22,36 @@ from .dsds import HouseMCModel
 from .materials import MaterialTreeBuilder, TreeTrimmer, UncertaintyForestBuilder
 
 HIERARCHY = ['Layer', 'Function', 'Sub-Function', 'Technology', 'Specification', 'Material']
+SCHEDULE_VERSION = 'original-v4'
+ORIGINAL_WALL_SEED = 43
 
 
 def stream_seed(seed: int, *labels) -> int:
     """Stable named streams; Python's process-randomised hash() is not used."""
     payload = json.dumps([int(seed), *labels], ensure_ascii=True, separators=(',', ':'))
     return int.from_bytes(sha256(payload.encode()).digest()[:8], 'little')
+
+
+def resolve_area_seeds(buildings, seed, area_seeds=None):
+    """Assign the production base-seed + area-ordinal rule reproducibly.
+
+    CSV first appearance replaces the old filesystem directory order. Supply
+    an explicit mapping when reproducing a known historical area assignment.
+    This must run before sorting buildings, because sorting must not change
+    the area enumeration represented by the input.
+    """
+    if isinstance(seed, bool) or not isinstance(seed, Integral) or seed < 0:
+        raise ValueError('seed must be a nonnegative integer')
+    areas = list(dict.fromkeys(buildings.area_id))
+    if not areas or any(not isinstance(a,str) or not a for a in areas):
+        raise ValueError('Area identifiers must be nonempty strings')
+    if area_seeds is None:
+        return {area:int(seed)+i for i,area in enumerate(areas)}
+    if not isinstance(area_seeds,Mapping) or set(area_seeds) != set(areas):
+        raise ValueError('area_seeds must map every input area exactly once')
+    if any(isinstance(v,bool) or not isinstance(v,Integral) or v < 0 for v in area_seeds.values()):
+        raise ValueError('Every area seed must be a nonnegative integer')
+    return {area:int(area_seeds[area]) for area in areas}
 
 
 def read_inputs(directory: Path):
@@ -91,13 +117,23 @@ def leaf_masses(tree):
 
 
 class SharedPools:
-    """One prototype pool per area, sampled age, exterior prototype and block."""
-    def __init__(self, hmi, ages, pool_size, seed):
+    """Cache production-equivalent pools, using area_seed + block for each key.
+
+    Ages and exterior prototypes retain distinct candidate sets, but use the
+    SAME random seed within an area's refresh block, as in ForestMatrixBuilder.
+    ``seed`` alone is a single-area fallback for direct use of this helper;
+    the full pipeline always passes its resolved area-seed mapping.
+    """
+    def __init__(self, hmi, ages, pool_size, seed, *, area_seeds=None):
         self.builder = MaterialTreeBuilder(hmi, ages)
         self.sampler = UncertaintyForestBuilder(ages, None)
         self.trimmer = TreeTrimmer()
         self.pool_size, self.seed = pool_size, seed
+        self.area_seeds = None if area_seeds is None else dict(area_seeds)
         self.templates, self.pools, self.uses = {}, {}, {}
+
+    def area_seed(self, area):
+        return self.seed if self.area_seeds is None else self.area_seeds[area]
 
     def get(self, area, age, prototype, block):
         key = (area, age, *prototype, int(block))
@@ -112,7 +148,7 @@ class SharedPools:
                 self.templates[base_key] = tree
             self.pools[key] = self.sampler.run_one_sample(
                 self.templates[base_key], self.pool_size,
-                random_state=stream_seed(self.seed, 'pool', *key))
+                random_state=self.area_seed(area)+int(block))
             self.uses[key] = 0
         self.uses[key] += 1
         return self.pools[key]
@@ -124,9 +160,30 @@ class SharedPools:
             serial = [t.to_dict() for t in self.pools[key]]
             rows.append(dict(area_id=area, sampled_age=age, wall_material=wall,
                 roof_material=roof, roof_shape=shape, refresh_block=block,
-                pool_size=self.pool_size, building_requests=self.uses[key],
+                pool_size=self.pool_size, area_seed=self.area_seed(area),
+                pool_seed=self.area_seed(area)+block, building_requests=self.uses[key],
                 candidate_sha256=sha256(json.dumps(serial,sort_keys=True,default=float).encode()).hexdigest()))
         return pd.DataFrame(rows)
+
+
+def sample_material_block(pools, ages, probabilities_by_observed_age,
+                          observed_age, area, prototype, block, block_size):
+    """Reproduce v4's per-block age/candidate selection and random dependence.
+
+    The slot RNG resets to the same AREA seed for every building and block.
+    Consequently, buildings in the same recorded cohort share the age/index
+    sequence, and equal-sized blocks repeat that sequence. The candidate
+    pools themselves refresh using area_seed + block.
+    """
+    probabilities = np.asarray(probabilities_by_observed_age,dtype=float)
+    row = probabilities[ages.index(observed_age)]
+    tree_matrix = [[] for _ in ages]
+    for i,age in enumerate(ages):
+        if row[i] > 0:
+            tree_matrix[i] = [pools.get(area,age,prototype,block)]
+    return generate_slots_for_age_material(
+        block_size, ages, [], probabilities, tree_matrix,
+        pools.area_seed(area), observed_age, 'lazy')
 
 
 @dataclass
@@ -137,21 +194,23 @@ class SimulationResult:
     draw_metadata: pd.DataFrame
     pool_inventory: pd.DataFrame
     checks: dict
+    sampling_schedule: dict
 
 
-def simulate(buildings, training, hmi, matrix, *, draws=200, pool_size=5, refreshes=10, seed=42, progress=False):
+def simulate(buildings, training, hmi, matrix, *, draws=200, pool_size=5, refreshes=10,
+             seed=42, area_seeds=None, wall_seed=ORIGINAL_WALL_SEED, progress=False):
     if min(draws, pool_size, refreshes) < 1 or draws % refreshes:
         raise ValueError('Positive parameters required, with draws divisible by refreshes (K % C == 0)')
-    if seed < 0:
-        raise ValueError('seed must be nonnegative')
+    resolved_seeds = resolve_area_seeds(buildings,seed,area_seeds)
+    if isinstance(wall_seed,bool) or not isinstance(wall_seed,Integral) or wall_seed < 0:
+        raise ValueError('wall_seed must be a nonnegative integer')
     ages = list(matrix.index)
     probabilities_by_observed_age = matrix.to_numpy(dtype=float).T
     dsds = HouseMCModel(valid_ratio=.2, random_state=42).fit(training)
-    pools = SharedPools(hmi, ages, pool_size, seed)
+    pools = SharedPools(hmi, ages, pool_size, seed, area_seeds=resolved_seeds)
     block_size = draws // refreshes
     buildings = buildings.sort_values('building_id').reset_index(drop=True)
     building_frames, diagnostics = {}, []
-    wall_seed = stream_seed(seed, 'shared-wall')
     wall_z = norm.ppf(.05 + .90 * np.random.default_rng(wall_seed).random(draws))
     for i, b in enumerate(buildings.itertuples(index=False)):
         exterior = pd.DataFrame([dict(T=b.footprint_m2*b.storeys,P=b.perimeter_m,F=b.storeys)])
@@ -168,11 +227,9 @@ def simulate(buildings, training, hmi, matrix, *, draws=200, pool_size=5, refres
         prototype = (b.wall_material,b.roof_material,b.roof_shape)
         mass_rows = []
         for block in range(refreshes):
-            tree_matrix = [[pools.get(b.area_id,age,prototype,block)] for age in ages]
-            # This original primitive draws ages, selects candidates, and deep-copies them.
-            trees, sampled_ages = generate_slots_for_age_material(
-                block_size, ages, [], probabilities_by_observed_age, tree_matrix,
-                stream_seed(seed,'slots',b.building_id,block), b.age, 'lazy')
+            trees, sampled_ages = sample_material_block(
+                pools, ages, probabilities_by_observed_age, b.age, b.area_id,
+                prototype, block, block_size)
             for offset, (tree, age_index) in enumerate(zip(trees,sampled_ages)):
                 k = block*block_size+offset
                 inferred = dict(room=int(values['R'][k]),window=int(values['W'][k]),
@@ -181,6 +238,8 @@ def simulate(buildings, training, hmi, matrix, *, draws=200, pool_size=5, refres
                 mass_rows.append(leaf_masses(tree))
                 diagnostics.append(dict(building_id=b.building_id,area_id=b.area_id,draw=k,
                     observed_age=b.age,sampled_age=ages[age_index],refresh_block=block,
+                    area_seed=resolved_seeds[b.area_id],slot_seed=resolved_seeds[b.area_id],
+                    pool_seed=resolved_seeds[b.area_id]+block,
                     rooms=inferred['room'],windows=inferred['window'],doors=inferred['interior_door'],
                     internal_wall_length_m=inferred['interior_wall'],shared_wall_z=wall_z[k]))
         frame = pd.DataFrame(mass_rows).fillna(0.)
@@ -205,7 +264,11 @@ def simulate(buildings, training, hmi, matrix, *, draws=200, pool_size=5, refres
     checks = {'passed':True,'buildings':len(buildings),'areas':len(areas),'draws':draws,
               'mass_conservation':errors,'absolute_tolerance_kg':tolerance,
               'finite_nonnegative_masses':True,'units':'kg'}
-    return SimulationResult(building_frames,areas,city,pd.DataFrame(diagnostics),pools.inventory(),checks)
+    schedule = {'version':SCHEDULE_VERSION,'area_seeds':resolved_seeds,'wall_seed':int(wall_seed),
+                'pool_seed_rule':'area_seed + refresh_block; shared across ages and exterior prototypes',
+                'slot_seed_rule':'area_seed; reset for every building and refresh block',
+                'count_stream':'SHA256(base_seed, counts, building_id); independent reproducible count draws'}
+    return SimulationResult(building_frames,areas,city,pd.DataFrame(diagnostics),pools.inventory(),checks,schedule)
 
 
 def target_summaries(result):

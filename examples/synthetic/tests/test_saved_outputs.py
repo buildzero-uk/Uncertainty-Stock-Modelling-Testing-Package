@@ -1,7 +1,10 @@
 """Saved-output checks catch stale files, misassigned areas and invalid draws."""
 
 from pathlib import Path
+from contextlib import redirect_stdout
+from copy import deepcopy
 import gzip
+from io import StringIO
 import json
 import shutil
 import sys
@@ -13,7 +16,8 @@ import pandas as pd
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from mwe_core.aggregation import aggregate_draws, summarise_targets
-from verify_example import verify_saved_outputs
+from verify_example import (DEFAULT_PARAMETERS,compare_default_reference,
+                            reference_skip_reason,verify_saved_outputs)
 
 
 def material_path(layer,material):
@@ -133,6 +137,63 @@ class SavedOutputTests(unittest.TestCase):
         self.write(d,path,index=True)
         with self.assertRaisesRegex(AssertionError,'ordered row'):
             verify_saved_outputs(self.out)
+
+
+class ReferenceScheduleTests(unittest.TestCase):
+    def setUp(self):
+        self.metadata={
+            'parameters':dict(DEFAULT_PARAMETERS),'input_sha256':{'fixture.csv':'fixture-hash'},
+            'sampling_schedule':{
+                'version':'original-v4','area_seeds':{'A':42,'B':43},'wall_seed':43,
+                'pool_seed_rule':'area_seed + refresh_block; shared across ages and exterior prototypes',
+                'slot_seed_rule':'area_seed; reset for every building and refresh block',
+                'count_stream':'SHA256(base_seed, counts, building_id); independent reproducible count draws',
+            },
+        }
+
+    def test_full_matching_schedule_is_eligible(self):
+        self.assertIsNone(reference_skip_reason(self.metadata,deepcopy(self.metadata)))
+
+    def test_each_changed_schedule_field_prevents_reference_comparison(self):
+        changes={'version':'hashed-v1','area_seeds':{'A':287,'B':288},'wall_seed':99,
+                 'pool_seed_rule':'independent age pools','slot_seed_rule':'independent building slots',
+                 'count_stream':'different counts'}
+        for key,value in changes.items():
+            with self.subTest(key=key):
+                run=deepcopy(self.metadata);run['sampling_schedule'][key]=value
+                self.assertIsNotNone(reference_skip_reason(run,self.metadata))
+
+    def test_older_or_incomplete_schedule_metadata_is_not_assumed_compatible(self):
+        old=deepcopy(self.metadata);old.pop('sampling_schedule')
+        self.assertIn('missing',reference_skip_reason(self.metadata,old))
+        self.assertIn('missing',reference_skip_reason(old,self.metadata))
+        incomplete=deepcopy(self.metadata);incomplete['sampling_schedule'].pop('wall_seed')
+        self.assertIn('incomplete',reference_skip_reason(incomplete,self.metadata))
+
+    def test_changed_parameters_or_input_hashes_prevent_comparison(self):
+        run=deepcopy(self.metadata);run['parameters']['seed']=99
+        self.assertIn('configuration',reference_skip_reason(run,self.metadata))
+        run=deepcopy(self.metadata);run['input_sha256']['fixture.csv']='different-hash'
+        self.assertIn('input hashes',reference_skip_reason(run,self.metadata))
+
+    def test_schedule_mismatch_skips_numbers_but_matching_schedule_checks_them(self):
+        expected=pd.DataFrame([dict(target='total',mean_kg=100.,p05_kg=90.,median_kg=100.,p95_kg=110.)])
+        observed=expected.assign(scope='city')
+        with tempfile.TemporaryDirectory() as temp:
+            directory=Path(temp)
+            expected.to_csv(directory/'default_city_summary.csv',index=False)
+            (directory/'default_run.json').write_text(json.dumps(self.metadata))
+            wrong_numbers=observed.copy();wrong_numbers['mean_kg']=1.e9
+            wrong_schedule=deepcopy(self.metadata);wrong_schedule['sampling_schedule']['wall_seed']=44
+            output=StringIO()
+            with redirect_stdout(output):
+                self.assertFalse(compare_default_reference(wrong_schedule,wrong_numbers,directory))
+            self.assertIn('sampling_schedule differs',output.getvalue())
+            self.assertNotIn('reference results match',output.getvalue())
+            with self.assertRaises(AssertionError):
+                compare_default_reference(self.metadata,wrong_numbers,directory)
+            with redirect_stdout(StringIO()):
+                self.assertTrue(compare_default_reference(self.metadata,observed,directory))
 
 
 if __name__=='__main__':
